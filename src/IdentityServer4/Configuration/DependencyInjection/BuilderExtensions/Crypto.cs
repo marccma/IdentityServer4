@@ -5,7 +5,9 @@
 using IdentityModel;
 using IdentityServer4.Stores;
 using Microsoft.IdentityModel.Tokens;
+using Newtonsoft.Json;
 using System;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -13,6 +15,9 @@ using CryptoRandom = IdentityModel.CryptoRandom;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
+    /// <summary>
+    /// Builder extension methods for registering crypto services
+    /// </summary>
     public static class IdentityServerBuilderExtensionsCrypto
     {
         /// <summary>
@@ -24,12 +29,12 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IIdentityServerBuilder AddSigningCredential(this IIdentityServerBuilder builder, SigningCredentials credential)
         {
             // todo
-            //if (!(credential.Key is AsymmetricSecurityKey) &&
-            //    !credential.Key.IsSupportedAlgorithm(SecurityAlgorithms.RsaSha256Signature))
-            //{
-            //    throw new InvalidOperationException("Signing key is not asymmetric and does not support RS256");
-            //}
-
+            if (!(credential.Key is AsymmetricSecurityKey
+                || (credential.Key is JsonWebKey && ((JsonWebKey)credential.Key).HasPrivateKey)))
+            //&& !credential.Key.IsSupportedAlgorithm(SecurityAlgorithms.RsaSha256Signature))
+            {
+                throw new InvalidOperationException("Signing key is not asymmetric");
+            }
             builder.Services.AddSingleton<ISigningCredentialStore>(new DefaultSigningCredentialsStore(credential));
             builder.Services.AddSingleton<IValidationKeysStore>(new DefaultValidationKeysStore(new[] { credential.Key }));
 
@@ -63,19 +68,33 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="builder">The builder.</param>
         /// <param name="name">The name.</param>
         /// <param name="location">The location.</param>
-        /// <returns></returns>
+        /// <param name="nameType">Name parameter can be either a distinguished name or a thumbprint</param>
         /// <exception cref="InvalidOperationException">certificate: '{name}'</exception>
-        public static IIdentityServerBuilder AddSigningCredential(this IIdentityServerBuilder builder, string name, StoreLocation location = StoreLocation.LocalMachine)
+        public static IIdentityServerBuilder AddSigningCredential(this IIdentityServerBuilder builder, string name, StoreLocation location = StoreLocation.LocalMachine, NameType nameType = NameType.SubjectDistinguishedName)
         {
-            X509Certificate2 certificate;
+            X509Certificate2 certificate = null;
 
             if (location == StoreLocation.LocalMachine)
             {
-                certificate = X509.LocalMachine.My.SubjectDistinguishedName.Find(name, validOnly: false).FirstOrDefault();
+                if (nameType == NameType.SubjectDistinguishedName)
+                {
+                    certificate = X509.LocalMachine.My.SubjectDistinguishedName.Find(name, validOnly: false).FirstOrDefault();
+                }
+                else if (nameType == NameType.Thumbprint)
+                {
+                    certificate = X509.LocalMachine.My.Thumbprint.Find(name, validOnly: false).FirstOrDefault();
+                }
             }
             else
             {
-                certificate = X509.CurrentUser.My.SubjectDistinguishedName.Find(name, validOnly: false).FirstOrDefault();
+                if (nameType == NameType.SubjectDistinguishedName)
+                {
+                    certificate = X509.CurrentUser.My.SubjectDistinguishedName.Find(name, validOnly: false).FirstOrDefault();
+                }
+                else if (nameType == NameType.Thumbprint)
+                {
+                    certificate = X509.CurrentUser.My.Thumbprint.Find(name, validOnly: false).FirstOrDefault();
+                }
             }
 
             if (certificate == null) throw new InvalidOperationException($"certificate: '{name}' not found in certificate store");
@@ -108,6 +127,69 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <returns></returns>
         public static IIdentityServerBuilder AddTemporarySigningCredential(this IIdentityServerBuilder builder)
         {
+            var key = CreateRsaSecurityKey();
+
+            return builder.AddSigningCredential(new SigningCredentials(key, "RS256"));
+        }
+
+        /// <summary>
+        /// Sets the temporary signing credential.
+        /// </summary>
+        /// <param name="builder">The builder.</param>
+        /// <param name="filename">The filename.</param>
+        /// <returns></returns>
+        public static IIdentityServerBuilder AddDeveloperSigningCredential(this IIdentityServerBuilder builder, string filename = null)
+        {
+            if (filename == null)
+            {
+                filename = Path.Combine(Directory.GetCurrentDirectory(), "tempkey.rsa");
+            }
+
+            if (File.Exists(filename))
+            {
+                var keyFile = File.ReadAllText(filename);
+                var tempKey = JsonConvert.DeserializeObject<TemporaryRsaKey>(keyFile);
+
+                return builder.AddSigningCredential(CreateRsaSecurityKey(tempKey.Parameters, tempKey.KeyId));
+            }
+            else
+            {
+                var key = CreateRsaSecurityKey();
+                var parameters = key.Rsa.ExportParameters(includePrivateParameters: true);
+
+                var tempKey = new TemporaryRsaKey
+                {
+                    Parameters = parameters,
+                    KeyId = key.KeyId
+                };
+
+                File.WriteAllText(filename, JsonConvert.SerializeObject(tempKey));
+                return builder.AddSigningCredential(key);
+            }
+        }
+
+        /// <summary>
+        /// Creates an RSA security key.
+        /// </summary>
+        /// <param name="parameters">The parameters.</param>
+        /// <param name="id">The identifier.</param>
+        /// <returns></returns>
+        public static RsaSecurityKey CreateRsaSecurityKey(RSAParameters parameters, string id)
+        {
+            var key = new RsaSecurityKey(parameters)
+            {
+                KeyId = id
+            };
+
+            return key;
+        }
+
+        /// <summary>
+        /// Creates a new RSA security key.
+        /// </summary>
+        /// <returns></returns>
+        public static RsaSecurityKey CreateRsaSecurityKey()
+        {
             var rsa = RSA.Create();
 
 #if NET452
@@ -132,10 +214,9 @@ namespace Microsoft.Extensions.DependencyInjection
                 key = new RsaSecurityKey(rsa);
             }
 
-            key.KeyId = CryptoRandom.CreateUniqueId();
-            
-            var credential = new SigningCredentials(key, "RS256");
-            return builder.AddSigningCredential(credential);
+            key.KeyId = CryptoRandom.CreateUniqueId(16);
+
+            return key;
         }
 
         /// <summary>
@@ -150,5 +231,28 @@ namespace Microsoft.Extensions.DependencyInjection
 
             return builder;
         }
+
+        // used for serialization to temporary RSA key
+        private class TemporaryRsaKey
+        {
+            public string KeyId { get; set; }
+            public RSAParameters Parameters { get; set; }
+        }
+    }
+
+    /// <summary>
+    /// Describes the string so we know what to search for in certificate store
+    /// </summary>
+    public enum NameType
+    {
+        /// <summary>
+        /// subject distinguished name
+        /// </summary>
+        SubjectDistinguishedName,
+
+        /// <summary>
+        /// thumbprint
+        /// </summary>
+        Thumbprint
     }
 }

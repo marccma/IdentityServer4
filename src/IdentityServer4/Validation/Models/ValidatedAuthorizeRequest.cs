@@ -3,7 +3,6 @@
 
 
 using IdentityModel;
-using IdentityServer4.Models;
 using System.Collections.Generic;
 
 namespace IdentityServer4.Validation
@@ -36,14 +35,6 @@ namespace IdentityServer4.Validation
         /// The the grant type.
         /// </value>
         public string GrantType { get; set; }
-
-        /// <summary>
-        /// Gets or sets the client.
-        /// </summary>
-        /// <value>
-        /// The client.
-        /// </value>
-        public Client Client { get; set; }
 
         /// <summary>
         /// Gets or sets the redirect URI.

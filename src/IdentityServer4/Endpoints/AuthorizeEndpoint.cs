@@ -50,15 +50,15 @@ namespace IdentityServer4.Endpoints
 
         public async Task<IEndpointResult> ProcessAsync(HttpContext context)
         {
+            if (context.Request.Path == Constants.ProtocolRoutePaths.Authorize.EnsureLeadingSlash())
+            {
+                return await ProcessAuthorizeAsync(context);
+            }
+
             if (context.Request.Method != "GET")
             {
                 _logger.LogWarning("Invalid HTTP method for authorize endpoint.");
                 return new StatusCodeResult(HttpStatusCode.MethodNotAllowed);
-            }
-
-            if (context.Request.Path == Constants.ProtocolRoutePaths.Authorize.EnsureLeadingSlash())
-            {
-                return await ProcessAuthorizeAsync(context);
             }
 
             if (context.Request.Path == Constants.ProtocolRoutePaths.AuthorizeAfterLogin.EnsureLeadingSlash())
@@ -78,9 +78,27 @@ namespace IdentityServer4.Endpoints
         {
             _logger.LogDebug("Start authorize request");
 
-            var values = context.Request.Query.AsNameValueCollection();
-            var user = await context.GetIdentityServerUserAsync();
+            NameValueCollection values;
 
+            if (context.Request.Method == "GET")
+            {
+                values = context.Request.Query.AsNameValueCollection();
+            }
+            else if (context.Request.Method == "POST")
+            {
+                if (!context.Request.HasFormContentType)
+                {
+                    return new StatusCodeResult(HttpStatusCode.UnsupportedMediaType);
+                }
+
+                values = context.Request.Form.AsNameValueCollection();
+            }
+            else
+            {
+                return new StatusCodeResult(HttpStatusCode.MethodNotAllowed);
+            }
+
+            var user = await context.GetIdentityServerUserAsync();
             var result = await ProcessAuthorizeRequestAsync(values, user, null);
 
             _logger.LogTrace("End authorize request. result type: {0}", result?.GetType().ToString() ?? "-none-");
@@ -173,7 +191,7 @@ namespace IdentityServer4.Endpoints
             var interactionResult = await _interactionGenerator.ProcessInteractionAsync(request, consent);
             if (interactionResult.IsError)
             {
-                return await CreateErrorResultAsync("Interaction generator error", request, interactionResult.Error);
+                return await CreateErrorResultAsync("Interaction generator error", request, interactionResult.Error, logError: false);
             }
             if (interactionResult.IsLogin)
             {
@@ -190,9 +208,10 @@ namespace IdentityServer4.Endpoints
 
             var response = await _authorizeResponseGenerator.CreateResponseAsync(request);
 
-            await RaiseSuccessEventAsync();
+            await RaiseResponseEventAsync(response);
 
             LogResponse(response);
+            
             return new AuthorizeResult(response);
         }
 
@@ -212,16 +231,22 @@ namespace IdentityServer4.Endpoints
             string logMessage,
             ValidatedAuthorizeRequest request = null, 
             string error = OidcConstants.AuthorizeErrors.ServerError, 
-            string errorDescription = null)
+            string errorDescription = null, 
+            bool logError = true)
         {
-            _logger.LogError(logMessage);
+            if (logError)
+            {
+                _logger.LogError(logMessage);
+            }
+
             if (request != null)
             {
                 var details = new AuthorizeRequestValidationLog(request);
                 _logger.LogInformation("{validationDetails}", details);
             }
 
-            await RaiseFailureEventAsync(error);
+            // TODO: should we raise a token failure event for all errors to the authorize endpoint?
+            await RaiseFailureEventAsync(request, error, errorDescription);
 
             return new AuthorizeResult(new AuthorizeResponse {
                 Request = request,
@@ -230,14 +255,41 @@ namespace IdentityServer4.Endpoints
             });
         }
 
-        private async Task RaiseSuccessEventAsync()
+        private Task RaiseResponseEventAsync(AuthorizeResponse response)
         {
-            await _events.RaiseSuccessfulEndpointEventAsync(EventConstants.EndpointNames.Authorize);
+            if (!response.IsError)
+            {
+                LogTokens(response);
+                return _events.RaiseAsync(new TokenIssuedSuccessEvent(response));
+            }
+            else
+            {
+                return RaiseFailureEventAsync(response.Request, response.Error, response.ErrorDescription);
+            }
         }
 
-        private async Task RaiseFailureEventAsync(string error)
+        private Task RaiseFailureEventAsync(ValidatedAuthorizeRequest request, string error, string errorDescription)
         {
-            await _events.RaiseFailureEndpointEventAsync(EventConstants.EndpointNames.Authorize, error);
+            return _events.RaiseAsync(new TokenIssuedFailureEvent(request, error, errorDescription));
         }
-   }
+
+        private void LogTokens(AuthorizeResponse response)
+        {
+            var clientId = $"{response.Request.ClientId} ({response.Request.Client.ClientName ?? "no name set"})";
+            var subjectId = response.Request.Subject.GetSubjectId();
+
+            if (response.IdentityToken != null)
+            {
+                _logger.LogTrace("Identity token issued for {clientId} / {subjectId}: {token}", clientId, subjectId, response.IdentityToken);
+            }
+            if (response.Code != null)
+            {
+                _logger.LogTrace("Code issued for {clientId} / {subjectId}: {token}", clientId, subjectId, response.Code);
+            }
+            if (response.AccessToken != null)
+            {
+                _logger.LogTrace("Access token issued for {clientId} / {subjectId}: {token}", clientId, subjectId, response.AccessToken);
+            }
+        }
+    }
 }

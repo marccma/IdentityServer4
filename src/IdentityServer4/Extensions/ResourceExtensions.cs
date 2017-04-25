@@ -3,13 +3,20 @@
 
 
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 
 namespace IdentityServer4.Models
 {
-    internal static class ResourceExtensions
+    /// <summary>
+    /// Extensions for Resource
+    /// </summary>
+    public static class ResourceExtensions
     {
+        /// <summary>
+        /// Converts to scope names.
+        /// </summary>
+        /// <param name="resources">The resources.</param>
+        /// <returns></returns>
         public static IEnumerable<string> ToScopeNames(this Resources resources)
         {
             var scopes = from api in resources.ApiResources
@@ -18,11 +25,17 @@ namespace IdentityServer4.Models
                          select scope.Name;
             if (resources.OfflineAccess)
             {
-                scopes = scopes.Union(new string[] { IdentityServerConstants.StandardScopes.OfflineAccess });
+                scopes = scopes.Union(new[] { IdentityServerConstants.StandardScopes.OfflineAccess });
             }
             return resources.IdentityResources.Select(x => x.Name).Union(scopes).ToArray();
         }
 
+        /// <summary>
+        /// Finds the API resource by scope.
+        /// </summary>
+        /// <param name="resources">The resources.</param>
+        /// <param name="name">The name.</param>
+        /// <returns></returns>
         public static ApiResource FindApiResourceByScope(this Resources resources, string name)
         {
             var q = from api in resources.ApiResources
@@ -33,6 +46,12 @@ namespace IdentityServer4.Models
             return q.FirstOrDefault();
         }
 
+        /// <summary>
+        /// Finds the API scope.
+        /// </summary>
+        /// <param name="resources">The resources.</param>
+        /// <param name="name">The name.</param>
+        /// <returns></returns>
         public static Scope FindApiScope(this Resources resources, string name)
         {
             var q = from api in resources.ApiResources
@@ -43,6 +62,12 @@ namespace IdentityServer4.Models
             return q.FirstOrDefault();
         }
 
+        /// <summary>
+        /// Finds the API scope.
+        /// </summary>
+        /// <param name="api">The API.</param>
+        /// <param name="name">The name.</param>
+        /// <returns></returns>
         public static Scope FindApiScope(this ApiResource api, string name)
         {
             if (api == null || api.Scopes == null) return null;

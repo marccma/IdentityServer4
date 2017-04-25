@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Brock Allen & Dominick Baier. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
 
+#pragma warning disable 1591
 
 namespace IdentityServer4
 {
@@ -9,13 +10,19 @@ namespace IdentityServer4
         public const string LocalIdentityProvider = "local";
         public const string DefaultCookieAuthenticationScheme = "idsrv";
         public const string SignoutScheme = "idsrv";
-        public const string ExternalCookieAuthenticationScheme = "external";
+        public const string ExternalCookieAuthenticationScheme = "idsrv.external";
 
         public static class ProtocolTypes
         {
             public const string OpenIdConnect = "oidc";
             public const string WsFederation = "wsfed";
             public const string Saml2p = "saml2p";
+        }
+
+        public static class TokenTypes
+        {
+            public const string IdentityToken = "id_token";
+            public const string AccessToken = "access_token";
         }
 
         public static class ClaimValueTypes
@@ -71,6 +78,5 @@ namespace IdentityServer4
             /// <summary>This scope value MUST NOT be used with the OpenID Connect Implicit Client Implementer's Guide 1.0. See the OpenID Connect Basic Client Implementer's Guide 1.0 (http://openid.net/specs/openid-connect-implicit-1_0.html#OpenID.Basic) for its usage in that subset of OpenID Connect.</summary>
             public const string OfflineAccess = "offline_access";
         }
-
     }
 }

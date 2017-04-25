@@ -58,14 +58,8 @@ namespace IdentityServer4.Validation
                 Options = _options,
                 Subject = subject ?? Principal.Anonymous
             };
-            
-            if (parameters == null)
-            {
-                _logger.LogCritical("Parameters are null.");
-                throw new ArgumentNullException(nameof(parameters));
-            }
 
-            request.Raw = parameters;
+            request.Raw = parameters ?? throw new ArgumentNullException(nameof(parameters));
 
             // validate client_id and redirect_uri
             var clientResult = await ValidateClientAsync(request);
@@ -110,7 +104,7 @@ namespace IdentityServer4.Validation
             return Valid(request);
         }
 
-        async Task<AuthorizeRequestValidationResult> ValidateClientAsync(ValidatedAuthorizeRequest request)
+        private async Task<AuthorizeRequestValidationResult> ValidateClientAsync(ValidatedAuthorizeRequest request)
         {
             //////////////////////////////////////////////////////////
             // client_id must be present
@@ -136,8 +130,7 @@ namespace IdentityServer4.Validation
                 return Invalid(request);
             }
 
-            Uri uri;
-            if (!Uri.TryCreate(redirectUri, UriKind.Absolute, out uri))
+            if (!Uri.TryCreate(redirectUri, UriKind.Absolute, out var _))
             {
                 LogError("malformed redirect_uri: " + redirectUri, request);
                 return Invalid(request);
@@ -156,7 +149,7 @@ namespace IdentityServer4.Validation
                 return Invalid(request, OidcConstants.AuthorizeErrors.UnauthorizedClient);
             }
 
-            request.Client = client;
+            request.SetClient(client);
 
             //////////////////////////////////////////////////////////
             // check if client protocol type is oidc
@@ -524,8 +517,7 @@ namespace IdentityServer4.Validation
             var maxAge = request.Raw.Get(OidcConstants.AuthorizeRequest.MaxAge);
             if (maxAge.IsPresent())
             {
-                int seconds;
-                if (int.TryParse(maxAge, out seconds))
+                if (int.TryParse(maxAge, out int seconds))
                 {
                     if (seconds >= 0)
                     {

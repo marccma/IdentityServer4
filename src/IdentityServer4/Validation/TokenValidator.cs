@@ -21,6 +21,10 @@ using Microsoft.AspNetCore.Http;
 
 namespace IdentityServer4.Validation
 {
+    /// <summary>
+    /// The token validator
+    /// </summary>
+    /// <seealso cref="IdentityServer4.Validation.ITokenValidator" />
     public class TokenValidator : ITokenValidator
     {
         private readonly ILogger _logger;
@@ -32,7 +36,17 @@ namespace IdentityServer4.Validation
         private readonly IKeyMaterialService _keys;
 
         private readonly TokenValidationLog _log;
-        
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TokenValidator"/> class.
+        /// </summary>
+        /// <param name="options">The options.</param>
+        /// <param name="context">The context.</param>
+        /// <param name="clients">The clients.</param>
+        /// <param name="referenceTokenStore">The reference token store.</param>
+        /// <param name="customValidator">The custom validator.</param>
+        /// <param name="keys">The keys.</param>
+        /// <param name="logger">The logger.</param>
         public TokenValidator(IdentityServerOptions options, IHttpContextAccessor context, IClientStore clients, IReferenceTokenStore referenceTokenStore, ICustomTokenValidator customValidator, IKeyMaterialService keys, ILogger<TokenValidator> logger)
         {
             _options = options;
@@ -45,7 +59,14 @@ namespace IdentityServer4.Validation
 
             _log = new TokenValidationLog();
         }
-        
+
+        /// <summary>
+        /// Validates an identity token.
+        /// </summary>
+        /// <param name="token">The token.</param>
+        /// <param name="clientId">The client identifier.</param>
+        /// <param name="validateLifetime">if set to <c>true</c> the lifetime gets validated. Otherwise not.</param>
+        /// <returns></returns>
         public virtual async Task<TokenValidationResult> ValidateIdentityTokenAsync(string token, string clientId = null, bool validateLifetime = true)
         {
             _logger.LogDebug("Start identity token validation");
@@ -108,6 +129,12 @@ namespace IdentityServer4.Validation
             return customResult;
         }
 
+        /// <summary>
+        /// Validates an access token.
+        /// </summary>
+        /// <param name="token">The token.</param>
+        /// <param name="expectedScope">The expected scope.</param>
+        /// <returns></returns>
         public virtual async Task<TokenValidationResult> ValidateAccessTokenAsync(string token, string expectedScope = null)
         {
             _logger.LogTrace("Start access token validation");
@@ -134,7 +161,7 @@ namespace IdentityServer4.Validation
                 _log.AccessTokenType = AccessTokenType.Jwt.ToString();
                 result = await ValidateJwtAsync(
                     token,
-                    string.Format(Constants.AccessTokenAudience, _context.HttpContext.GetIssuerUri().EnsureTrailingSlash()),
+                    string.Format(Constants.AccessTokenAudience, _context.HttpContext.GetIdentityServerIssuerUri().EnsureTrailingSlash()),
                     await _keys.GetValidationKeysAsync());
             }
             else
@@ -194,7 +221,7 @@ namespace IdentityServer4.Validation
 
             var parameters = new TokenValidationParameters
             {
-                ValidIssuer = _context.HttpContext.GetIssuerUri(),
+                ValidIssuer = _context.HttpContext.GetIdentityServerIssuerUri(),
                 IssuerSigningKeys = validationKeys,
                 ValidateLifetime = validateLifetime,
                 ValidAudience = audience
@@ -202,8 +229,7 @@ namespace IdentityServer4.Validation
 
             try
             {
-                SecurityToken jwtToken;
-                var id = handler.ValidateToken(jwt, parameters, out jwtToken);
+                var id = handler.ValidateToken(jwt, parameters, out var _);
 
                 // if access token contains an ID, log it
                 var jwtId = id.FindFirst(JwtClaimTypes.JwtId);
@@ -247,20 +273,11 @@ namespace IdentityServer4.Validation
 
             if (token == null)
             {
-                LogError("Token handle not found in token handle store.");
+                LogError("Invalid reference token.");
                 return Invalid(OidcConstants.ProtectedResourceErrors.InvalidToken);
             }
 
-            // TODO: review
-            //if (token.Type != OidcConstants.TokenTypes.AccessToken)
-            //{
-            //    LogError("Token handle does not resolve to an access token - but instead to: " + token.Type);
-
-            //    await _tokenHandles.RemoveAsync(tokenHandle);
-            //    return Invalid(OidcConstants.ProtectedResourceErrors.InvalidToken);
-            //}
-
-            if (DateTimeHelper.UtcNow >= token.CreationTime.AddSeconds(token.Lifetime))
+            if (IdentityServerDateTime.UtcNow >= token.CreationTime.AddSeconds(token.Lifetime))
             {
                 LogError("Token expired.");
 

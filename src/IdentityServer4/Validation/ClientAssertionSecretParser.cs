@@ -16,19 +16,30 @@ using Microsoft.Extensions.Logging;
 namespace IdentityServer4.Validation
 {
     /// <summary>
-    /// Parses a POST body for secrets
+    /// Parses a POST body for a client assertion
     /// </summary>
     public class ClientAssertionSecretParser : ISecretParser
     {
         private readonly IdentityServerOptions _options;
         private readonly ILogger _logger;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ClientAssertionSecretParser"/> class.
+        /// </summary>
+        /// <param name="options">The options.</param>
+        /// <param name="logger">The logger.</param>
         public ClientAssertionSecretParser(IdentityServerOptions options, ILogger<ClientAssertionSecretParser> logger)
         {
             _options = options;
             _logger = logger;
         }
 
+        /// <summary>
+        /// Returns the authentication method name that this parser implements
+        /// </summary>
+        /// <value>
+        /// The authentication method.
+        /// </value>
         public string AuthenticationMethod => OidcConstants.EndpointAuthenticationMethods.PrivateKeyJwt;
 
         /// <summary>
@@ -39,47 +50,42 @@ namespace IdentityServer4.Validation
         /// <returns>
         /// A parsed secret
         /// </returns>
-        public Task<ParsedSecret> ParseAsync(HttpContext context)
+        public async Task<ParsedSecret> ParseAsync(HttpContext context)
         {
             _logger.LogDebug("Start parsing for JWT client assertion in post body");
 
             if (!context.Request.HasFormContentType)
             {
                 _logger.LogDebug("Content type is not a form");
-                return Task.FromResult<ParsedSecret>(null);
+                return null;
             }
 
-            var body = context.Request.Form;
+            var body = await context.Request.ReadFormAsync();
 
             if (body != null)
             {
-                var clientId = body[OidcConstants.TokenRequest.ClientId].FirstOrDefault();
                 var clientAssertionType = body[OidcConstants.TokenRequest.ClientAssertionType].FirstOrDefault();
                 var clientAssertion = body[OidcConstants.TokenRequest.ClientAssertion].FirstOrDefault();
-                
+
                 if (clientAssertion.IsPresent()
                     && clientAssertionType == OidcConstants.ClientAssertionTypes.JwtBearer)
                 {
                     if (clientAssertion.Length > _options.InputLengthRestrictions.Jwt)
                     {
                         _logger.LogError("Client assertion token exceeds maximum lenght.");
-                        return Task.FromResult<ParsedSecret>(null);
+                        return null;
                     }
 
+                    var clientId = GetClientIdFromToken(clientAssertion);
                     if (!clientId.IsPresent())
                     {
-                        // actual "client_id" form field is optional since the value is always present inside the token
-                        clientId = GetClientIdFromToken(clientAssertion);
-                        if (!clientId.IsPresent())
-                        {
-                            return null;
-                        }
+                        return null;
                     }
-                    
+
                     if (clientId.Length > _options.InputLengthRestrictions.ClientId)
                     {
                         _logger.LogError("Client ID exceeds maximum lenght.");
-                        return Task.FromResult<ParsedSecret>(null);
+                        return null;
                     }
 
                     var parsedSecret = new ParsedSecret
@@ -89,12 +95,12 @@ namespace IdentityServer4.Validation
                         Type = IdentityServerConstants.ParsedSecretTypes.JwtBearer
                     };
 
-                    return Task.FromResult<ParsedSecret>(parsedSecret);
+                    return parsedSecret;
                 }
             }
 
             _logger.LogDebug("No JWT client assertion found in post body");
-            return Task.FromResult<ParsedSecret>(null);
+            return null;
         }
 
         private string GetClientIdFromToken(string token)
@@ -102,7 +108,7 @@ namespace IdentityServer4.Validation
             try
             {
                 var jwt = new JwtSecurityToken(token);
-                return jwt.Issuer;
+                return jwt.Subject;
             }
             catch (Exception e)
             {

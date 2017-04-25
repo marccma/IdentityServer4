@@ -7,11 +7,13 @@ using IdentityServer4.Services;
 using IdentityServer4.Stores;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace IdentityServer4.Validation
 {
+    /// <summary>
+    /// Validates API secrets using the registered secret validators and parsers
+    /// </summary>
     public class ApiSecretValidator
     {
         private readonly ILogger _logger;
@@ -20,6 +22,14 @@ namespace IdentityServer4.Validation
         private readonly SecretParser _parser;
         private readonly SecretValidator _validator;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ApiSecretValidator"/> class.
+        /// </summary>
+        /// <param name="resources">The resources.</param>
+        /// <param name="parsers">The parsers.</param>
+        /// <param name="validator">The validator.</param>
+        /// <param name="events">The events.</param>
+        /// <param name="logger">The logger.</param>
         public ApiSecretValidator(IResourceStore resources, SecretParser parsers, SecretValidator validator, IEventService events, ILogger<ApiSecretValidator> logger)
         {
             _resources = resources;
@@ -29,6 +39,11 @@ namespace IdentityServer4.Validation
             _logger = logger;
         }
 
+        /// <summary>
+        /// Validates the secret on the current request.
+        /// </summary>
+        /// <param name="context">The context.</param>
+        /// <returns></returns>
         public async Task<ApiSecretValidationResult> ValidateAsync(HttpContext context)
         {
             _logger.LogTrace("Start API validation");
@@ -43,7 +58,7 @@ namespace IdentityServer4.Validation
             {
                 await RaiseFailureEvent("unknown", "No API id or secret found");
 
-                _logger.LogError("No scope secret found");
+                _logger.LogError("No API secret found");
                 return fail;
             }
 
@@ -76,7 +91,7 @@ namespace IdentityServer4.Validation
                     Resource = api
                 };
 
-                await RaiseSuccessEvent(api.Name);
+                await RaiseSuccessEvent(api.Name, parsedSecret.Type);
                 return success;
             }
 
@@ -86,16 +101,14 @@ namespace IdentityServer4.Validation
             return fail;
         }
 
-        private async Task RaiseSuccessEvent(string clientId)
+        private Task RaiseSuccessEvent(string clientId, string authMethod)
         {
-            // TODO: API secret validation (not client)
-            await _events.RaiseSuccessfulClientAuthenticationEventAsync(clientId, EventConstants.ClientTypes.Scope);
+            return _events.RaiseAsync(new ApiAuthenticationSuccessEvent(clientId, authMethod));
         }
 
-        private async Task RaiseFailureEvent(string clientId, string message)
+        private Task RaiseFailureEvent(string clientId, string message)
         {
-            // TODO: API secret validation (not client)
-            await _events.RaiseFailureClientAuthenticationEventAsync(message, clientId, EventConstants.ClientTypes.Scope);
+            return _events.RaiseAsync(new ApiAuthenticationFailureEvent(clientId, message));
         }
     }
 }

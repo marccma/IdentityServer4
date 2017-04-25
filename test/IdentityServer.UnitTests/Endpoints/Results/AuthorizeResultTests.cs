@@ -7,7 +7,7 @@ using IdentityModel;
 using IdentityServer4.Configuration;
 using IdentityServer4.Endpoints.Results;
 using IdentityServer4.Extensions;
-using IdentityServer4.Models;
+using IdentityServer4.ResponseHandling;
 using IdentityServer4.UnitTests.Common;
 using IdentityServer4.Validation;
 using Microsoft.AspNetCore.Http;
@@ -33,12 +33,12 @@ namespace IdentityServer4.UnitTests.Endpoints.Results
 
         public AuthorizeResultTests()
         {
-            _context.SetOrigin("https://server");
-            _context.SetBasePath("/");
+            _context.SetIdentityServerOrigin("https://server");
+            _context.SetIdentityServerBasePath("/");
             _context.Response.Body = new MemoryStream();
 
-            _options.UserInteractionOptions.ErrorUrl = "~/error";
-            _options.UserInteractionOptions.ErrorIdParameter = "errorId";
+            _options.UserInteraction.ErrorUrl = "~/error";
+            _options.UserInteraction.ErrorIdParameter = "errorId";
 
             _subject = new AuthorizeResult(_response, _options, _mockClientSession, _mockErrorMessageStore);
         }
@@ -88,7 +88,7 @@ namespace IdentityServer4.UnitTests.Endpoints.Results
             _response.Request = new ValidatedAuthorizeRequest
             {
                 ResponseMode = OidcConstants.ResponseModes.Query,
-                RedirectUri = "http://client/callback",
+                RedirectUri = "http://client/callback"
             };
 
             await _subject.ExecuteAsync(_context);
@@ -106,7 +106,7 @@ namespace IdentityServer4.UnitTests.Endpoints.Results
             {
                 ClientId = "client",
                 ResponseMode = OidcConstants.ResponseModes.Query,
-                RedirectUri = "http://client/callback",
+                RedirectUri = "http://client/callback"
             };
 
             await _subject.ExecuteAsync(_context);

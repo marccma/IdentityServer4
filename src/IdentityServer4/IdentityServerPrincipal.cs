@@ -11,8 +11,18 @@ using System.Security.Claims;
 
 namespace IdentityServer4
 {
+    /// <summary>
+    /// Factory for IdentityServer compatible principals
+    /// </summary>
     public static class IdentityServerPrincipal
     {
+        /// <summary>
+        /// Creates a principal.
+        /// </summary>
+        /// <param name="subject">The subject.</param>
+        /// <param name="name">The name.</param>
+        /// <param name="claims">The claims.</param>
+        /// <returns></returns>
         public static ClaimsPrincipal Create(
             string subject,
             string name,
@@ -21,6 +31,14 @@ namespace IdentityServer4
             return Create(subject, name, IdentityServerConstants.LocalIdentityProvider, new[] { OidcConstants.AuthenticationMethods.Password }, claims);
         }
 
+        /// <summary>
+        /// Creates a principal.
+        /// </summary>
+        /// <param name="subject">The subject.</param>
+        /// <param name="name">The name.</param>
+        /// <param name="identityProvider">The identity provider.</param>
+        /// <param name="claims">The claims.</param>
+        /// <returns></returns>
         public static ClaimsPrincipal Create(
             string subject,
             string name,
@@ -30,6 +48,14 @@ namespace IdentityServer4
             return Create(subject, name, identityProvider, new[] { Constants.ExternalAuthenticationMethod }, claims);
         }
 
+        /// <summary>
+        /// Creates a principal.
+        /// </summary>
+        /// <param name="subject">The subject.</param>
+        /// <param name="name">The name.</param>
+        /// <param name="authenticationMethods">The authentication methods.</param>
+        /// <param name="claims">The claims.</param>
+        /// <returns></returns>
         public static ClaimsPrincipal Create(
             string subject,
             string name,
@@ -39,6 +65,24 @@ namespace IdentityServer4
             return Create(subject, name, IdentityServerConstants.LocalIdentityProvider, authenticationMethods, claims);
         }
 
+        /// <summary>
+        /// Creates a principal.
+        /// </summary>
+        /// <param name="subject">The subject.</param>
+        /// <param name="name">The name.</param>
+        /// <param name="identityProvider">The identity provider.</param>
+        /// <param name="authenticationMethods">The authentication methods.</param>
+        /// <param name="claims">The claims.</param>
+        /// <returns></returns>
+        /// <exception cref="System.ArgumentNullException">
+        /// subject
+        /// or
+        /// name
+        /// or
+        /// authenticationMethods
+        /// or
+        /// identityProvider
+        /// </exception>
         public static ClaimsPrincipal Create(
             string subject,
             string name,
@@ -56,7 +100,7 @@ namespace IdentityServer4
                 new Claim(JwtClaimTypes.Subject, subject),
                 new Claim(JwtClaimTypes.Name, name),
                 new Claim(JwtClaimTypes.IdentityProvider, identityProvider),
-                new Claim(JwtClaimTypes.AuthenticationTime, DateTimeHelper.UtcNow.ToEpochTime().ToString(), ClaimValueTypes.Integer)
+                new Claim(JwtClaimTypes.AuthenticationTime, IdentityServerDateTime.UtcNow.ToEpochTime().ToString(), ClaimValueTypes.Integer)
             };
 
             foreach (var amr in authenticationMethods)
@@ -64,7 +108,6 @@ namespace IdentityServer4
                 allClaims.Add(new Claim(JwtClaimTypes.AuthenticationMethod, amr));
             }
 
-            // todo: filtering?
             foreach (var claim in claims)
             {
                 allClaims.Add(claim);
@@ -112,7 +155,7 @@ namespace IdentityServer4
 
             if (identity.FindFirst(JwtClaimTypes.AuthenticationTime) == null)
             {
-                identity.AddClaim(new Claim(JwtClaimTypes.AuthenticationTime, DateTimeHelper.UtcNow.ToEpochTime().ToString(), ClaimValueTypes.Integer));
+                identity.AddClaim(new Claim(JwtClaimTypes.AuthenticationTime, IdentityServerDateTime.UtcNow.ToEpochTime().ToString(), ClaimValueTypes.Integer));
             }
         }
 

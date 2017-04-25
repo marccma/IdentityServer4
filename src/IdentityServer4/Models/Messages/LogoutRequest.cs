@@ -5,6 +5,7 @@
 using IdentityModel;
 using IdentityServer4.Extensions;
 using IdentityServer4.Validation;
+using System.Collections.Specialized;
 
 namespace IdentityServer4.Models
 {
@@ -13,14 +14,22 @@ namespace IdentityServer4.Models
     /// </summary>
     public class LogoutMessage
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="LogoutMessage"/> class.
+        /// </summary>
         public LogoutMessage()
         {
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="LogoutMessage"/> class.
+        /// </summary>
+        /// <param name="request">The request.</param>
         public LogoutMessage(ValidatedEndSessionRequest request)
         {
             if (request != null)
             {
+                Parameters = request.Raw;
                 ClientId = request.Client?.ClientId;
                 SessionId = request.SessionId;
 
@@ -35,6 +44,10 @@ namespace IdentityServer4.Models
             }
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="LogoutMessage"/> class.
+        /// </summary>
+        /// <param name="message">The message.</param>
         public LogoutMessage(LogoutMessage message)
         {
             if (message != null)
@@ -42,6 +55,7 @@ namespace IdentityServer4.Models
                 ClientId = message.ClientId;
                 PostLogoutRedirectUri = message.PostLogoutRedirectUri;
                 SessionId = message.SessionId;
+                Parameters = message.Parameters;
             }
         }
 
@@ -70,6 +84,14 @@ namespace IdentityServer4.Models
         public string SessionId { get; set; }
 
         /// <summary>
+        /// Gets the entire parameter collection.
+        /// </summary>
+        /// <value>
+        /// The parameters.
+        /// </value>
+        public NameValueCollection Parameters { get; } = new NameValueCollection();
+
+        /// <summary>
         /// Gets or sets a value indicating whether the user should be prompted for signout.
         /// </summary>
         /// <value>
@@ -83,6 +105,11 @@ namespace IdentityServer4.Models
     /// </summary>
     public class LogoutRequest : LogoutMessage
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="LogoutRequest"/> class.
+        /// </summary>
+        /// <param name="iframeUrl">The iframe URL.</param>
+        /// <param name="message">The message.</param>
         public LogoutRequest(string iframeUrl, LogoutMessage message)
             : base(message)
         {

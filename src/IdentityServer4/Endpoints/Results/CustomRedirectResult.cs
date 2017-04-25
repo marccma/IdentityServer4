@@ -13,11 +13,25 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace IdentityServer4.Endpoints.Results
 {
+    /// <summary>
+    /// Result for a custom redirect
+    /// </summary>
+    /// <seealso cref="IdentityServer4.Hosting.IEndpointResult" />
     public class CustomRedirectResult : IEndpointResult
     {
         private readonly ValidatedAuthorizeRequest _request;
         private readonly string _url;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CustomRedirectResult"/> class.
+        /// </summary>
+        /// <param name="request">The request.</param>
+        /// <param name="url">The URL.</param>
+        /// <exception cref="System.ArgumentNullException">
+        /// request
+        /// or
+        /// url
+        /// </exception>
         public CustomRedirectResult(ValidatedAuthorizeRequest request, string url)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
@@ -43,6 +57,11 @@ namespace IdentityServer4.Endpoints.Results
             _options = _options ?? context.RequestServices.GetRequiredService<IdentityServerOptions>();
         }
 
+        /// <summary>
+        /// Executes the result.
+        /// </summary>
+        /// <param name="context">The HTTP context.</param>
+        /// <returns></returns>
         public Task ExecuteAsync(HttpContext context)
         {
             Init(context);
@@ -57,7 +76,7 @@ namespace IdentityServer4.Endpoints.Results
                 returnUrl = context.GetIdentityServerBaseUrl().EnsureTrailingSlash() + returnUrl.RemoveLeadingSlash();
             }
 
-            var url = _url.AddQueryString(_options.UserInteractionOptions.CustomRedirectReturnUrlParameter, returnUrl);
+            var url = _url.AddQueryString(_options.UserInteraction.CustomRedirectReturnUrlParameter, returnUrl);
             context.Response.RedirectToAbsoluteUrl(url);
 
             return Task.FromResult(0);

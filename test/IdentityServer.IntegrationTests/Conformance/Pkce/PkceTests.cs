@@ -7,7 +7,7 @@ using IdentityModel;
 using IdentityModel.Client;
 using IdentityServer4.IntegrationTests.Common;
 using IdentityServer4.Models;
-using IdentityServer4.Services.InMemory;
+using IdentityServer4.Test;
 using System;
 using System.Collections.Generic;
 using System.Security.Claims;
@@ -33,15 +33,15 @@ namespace IdentityServer4.IntegrationTests.Conformance.Pkce
 
         public PkceTests()
         {
-            _pipeline.Users.Add(new InMemoryUser
+            _pipeline.Users.Add(new TestUser
             {
-                Subject = "bob",
+                SubjectId = "bob",
                 Username = "bob",
                 Claims = new Claim[]
                 {
                         new Claim("name", "Bob Loblaw"),
                         new Claim("email", "bob@loblaw.com"),
-                        new Claim("role", "Attorney"),
+                        new Claim("role", "Attorney")
                 }
             });
             _pipeline.IdentityScopes.Add(new IdentityResources.OpenId());

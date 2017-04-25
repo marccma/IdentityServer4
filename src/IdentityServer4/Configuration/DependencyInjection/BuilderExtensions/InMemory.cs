@@ -4,17 +4,16 @@
 
 using IdentityServer4.Models;
 using IdentityServer4.Services;
-using IdentityServer4.Services.Default;
-using IdentityServer4.Services.InMemory;
 using IdentityServer4.Stores;
-using IdentityServer4.Stores.InMemory;
-using IdentityServer4.Validation;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using System.Collections.Generic;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
+    /// <summary>
+    /// Builder extension methods for registering in-memory services
+    /// </summary>
     public static class IdentityServerBuilderExtensionsInMemory
     {
         /// <summary>
@@ -39,7 +38,7 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IIdentityServerBuilder AddInMemoryIdentityResources(this IIdentityServerBuilder builder, IEnumerable<IdentityResource> identityResources)
         {
             builder.Services.AddSingleton(identityResources);
-            builder.Services.TryAddTransient<IResourceStore, InMemoryResourcesStore>();
+            builder.AddResourceStore<InMemoryResourcesStore>();
 
             return builder;
         }
@@ -53,7 +52,7 @@ namespace Microsoft.Extensions.DependencyInjection
         public static IIdentityServerBuilder AddInMemoryApiResources(this IIdentityServerBuilder builder, IEnumerable<ApiResource> apiResources)
         {
             builder.Services.AddSingleton(apiResources);
-            builder.Services.TryAddTransient<IResourceStore, InMemoryResourcesStore>();
+            builder.AddResourceStore<InMemoryResourcesStore>();
 
             return builder;
         }
@@ -68,25 +67,8 @@ namespace Microsoft.Extensions.DependencyInjection
         {
             builder.Services.AddSingleton(clients);
 
-            builder.Services.AddTransient<IClientStore, InMemoryClientStore>();
-            builder.Services.AddTransient<ICorsPolicyService, InMemoryCorsPolicyService>();
-
-            return builder;
-        }
-
-        /// <summary>
-        /// Adds the in memory users.
-        /// </summary>
-        /// <param name="builder">The builder.</param>
-        /// <param name="users">The users.</param>
-        /// <returns></returns>
-        public static IIdentityServerBuilder AddInMemoryUsers(this IIdentityServerBuilder builder, List<InMemoryUser> users)
-        {
-            builder.Services.AddSingleton(users);
-
-            builder.Services.AddTransient<IProfileService, InMemoryUserProfileService>();
-            builder.Services.AddTransient<IResourceOwnerPasswordValidator, InMemoryUserResourceOwnerPasswordValidator>();
-            builder.Services.AddTransient<InMemoryUserLoginService>();
+            builder.AddClientStore<InMemoryClientStore>();
+            builder.AddCorsPolicyService<InMemoryCorsPolicyService>();
 
             return builder;
         }

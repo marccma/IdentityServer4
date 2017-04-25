@@ -7,33 +7,39 @@ using IdentityServer4.Models;
 using IdentityServer4.Stores.Serialization;
 using Microsoft.Extensions.Logging;
 using IdentityServer4.Extensions;
+using IdentityServer4.Services;
 
 namespace IdentityServer4.Stores
 {
     /// <summary>
     /// Default authorization code store.
     /// </summary>
-    /// <seealso cref="IdentityServer4.Stores.DefaultGrantStore{IdentityServer4.Models.AuthorizationCode}" />
-    /// <seealso cref="IdentityServer4.Stores.IAuthorizationCodeStore" />
     public class DefaultAuthorizationCodeStore : DefaultGrantStore<AuthorizationCode>, IAuthorizationCodeStore
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DefaultAuthorizationCodeStore"/> class.
+        /// </summary>
+        /// <param name="store">The store.</param>
+        /// <param name="serializer">The serializer.</param>
+        /// <param name="handleGenerationService">The handle generation service.</param>
+        /// <param name="logger">The logger.</param>
         public DefaultAuthorizationCodeStore(
-            IPersistedGrantStore store, 
-            PersistentGrantSerializer serializer, 
-            ILogger<DefaultAuthorizationCodeStore> logger) 
-            : base(Constants.PersistedGrantTypes.AuthorizationCode, store, serializer, logger)
+            IPersistedGrantStore store,
+            IPersistentGrantSerializer serializer,
+            IHandleGenerationService handleGenerationService,
+            ILogger<DefaultAuthorizationCodeStore> logger)
+            : base(Constants.PersistedGrantTypes.AuthorizationCode, store, serializer, handleGenerationService, logger)
         {
         }
 
         /// <summary>
         /// Stores the authorization code asynchronous.
         /// </summary>
-        /// <param name="handle">The handle.</param>
         /// <param name="code">The code.</param>
         /// <returns></returns>
-        public Task StoreAuthorizationCodeAsync(string handle, AuthorizationCode code)
+        public Task<string> StoreAuthorizationCodeAsync(AuthorizationCode code)
         {
-            return StoreItemAsync(handle, code, code.ClientId, code.Subject.GetSubjectId(), code.CreationTime, code.Lifetime);
+            return CreateItemAsync(code, code.ClientId, code.Subject.GetSubjectId(), code.CreationTime, code.Lifetime);
         }
 
         /// <summary>

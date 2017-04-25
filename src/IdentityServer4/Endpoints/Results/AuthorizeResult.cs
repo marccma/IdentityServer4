@@ -13,6 +13,7 @@ using System;
 using IdentityServer4.Services;
 using IdentityServer4.Configuration;
 using IdentityServer4.Stores;
+using IdentityServer4.ResponseHandling;
 
 namespace IdentityServer4.Endpoints.Results
 {
@@ -22,9 +23,7 @@ namespace IdentityServer4.Endpoints.Results
 
         public AuthorizeResult(AuthorizeResponse response)
         {
-            if (response == null) throw new ArgumentNullException(nameof(response));
-
-            Response = response;
+            Response = response ?? throw new ArgumentNullException(nameof(response));
         }
 
         internal AuthorizeResult(
@@ -124,7 +123,7 @@ namespace IdentityServer4.Endpoints.Results
         {
             var formOrigin = Response.Request.RedirectUri.GetOrigin();
             // 'unsafe-inline' for edge
-            var value = $"default-src 'none'; frame-ancestors {formOrigin}; form-action {formOrigin}; script-src 'unsafe-inline' 'sha256-VuNUSJ59bpCpw62HM2JG/hCyGiqoPN3NqGvNXQPU+rY=';";
+            var value = $"default-src 'none'; frame-ancestors {formOrigin}; script-src 'unsafe-inline' 'sha256-VuNUSJ59bpCpw62HM2JG/hCyGiqoPN3NqGvNXQPU+rY=';";
 
             if (!context.Response.Headers.ContainsKey("Content-Security-Policy"))
             {
@@ -177,15 +176,16 @@ namespace IdentityServer4.Endpoints.Results
             var errorModel = new ErrorMessage
             {
                 RequestId = context.TraceIdentifier,
-                Error = Response.Error
+                Error = Response.Error,
+                ErrorDescription = Response.ErrorDescription
             };
 
             var message = new MessageWithId<ErrorMessage>(errorModel);
             await _errorMessageStore.WriteAsync(message.Id, message);
 
-            var errorUrl = _options.UserInteractionOptions.ErrorUrl;
+            var errorUrl = _options.UserInteraction.ErrorUrl;
 
-            var url = errorUrl.AddQueryString(_options.UserInteractionOptions.ErrorIdParameter, message.Id);
+            var url = errorUrl.AddQueryString(_options.UserInteraction.ErrorIdParameter, message.Id);
             context.Response.RedirectToAbsoluteUrl(url);
         }
     }

@@ -6,10 +6,17 @@ using Newtonsoft.Json;
 
 namespace IdentityServer4.Stores.Serialization
 {
-    public class PersistentGrantSerializer
+    /// <summary>
+    /// JSON-based persisted grant serializer
+    /// </summary>
+    /// <seealso cref="IdentityServer4.Stores.Serialization.IPersistentGrantSerializer" />
+    public class PersistentGrantSerializer : IPersistentGrantSerializer
     {
         private readonly JsonSerializerSettings _settings;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PersistentGrantSerializer"/> class.
+        /// </summary>
         public PersistentGrantSerializer()
         {
             _settings = new JsonSerializerSettings();
@@ -18,12 +25,24 @@ namespace IdentityServer4.Stores.Serialization
             _settings.Converters.Add(new ClaimsPrincipalConverter());
         }
 
-        public virtual string Serialize<T>(T value)
+        /// <summary>
+        /// Serializes the specified value.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value">The value.</param>
+        /// <returns></returns>
+        public string Serialize<T>(T value)
         {
             return JsonConvert.SerializeObject(value, _settings);
         }
 
-        public virtual T Deserialize<T>(string json)
+        /// <summary>
+        /// Deserializes the specified string.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="json">The json.</param>
+        /// <returns></returns>
+        public T Deserialize<T>(string json)
         {
             return JsonConvert.DeserializeObject<T>(json, _settings);
         }

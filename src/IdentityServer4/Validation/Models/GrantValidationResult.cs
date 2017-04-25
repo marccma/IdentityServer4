@@ -31,6 +31,16 @@ namespace IdentityServer4.Validation
         public Dictionary<string, object> CustomResponse { get; set; } = new Dictionary<string, object>();
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="GrantValidationResult"/> class with no subject.
+        /// Warning: the resulting access token will only contain the client identity.
+        /// </summary>
+        public GrantValidationResult(Dictionary<string, object> customResponse = null)
+        {
+            IsError = false;
+            CustomResponse = customResponse;
+        }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="GrantValidationResult"/> class with a given principal.
         /// Warning: the principal needs to include the required claims - it is recommended to use the other constructor that does validation.
         /// </summary>
@@ -38,7 +48,11 @@ namespace IdentityServer4.Validation
         {
             IsError = false;
 
-            // TODO: more checks on claims (amr, etc...)
+            if (principal.Identities.Count() != 1) throw new InvalidOperationException("only a single identity supported");
+            if (principal.FindFirst(JwtClaimTypes.Subject) == null) throw new InvalidOperationException("sub claim is missing");
+            if (principal.FindFirst(JwtClaimTypes.IdentityProvider) == null) throw new InvalidOperationException("idp claim is missing");
+            if (principal.FindFirst(JwtClaimTypes.AuthenticationMethod) == null) throw new InvalidOperationException("amr claim is missing");
+
             Subject = principal;
             CustomResponse = customResponse;
         }
@@ -47,7 +61,8 @@ namespace IdentityServer4.Validation
         /// Initializes a new instance of the <see cref="GrantValidationResult"/> class with an error and description.
         /// </summary>
         /// <param name="error">The error.</param>
-        /// /// <param name="errorDescription">The error description.</param>
+        /// <param name="errorDescription">The error description.</param>
+        /// <param name="customResponse">Custom response elements</param>
         public GrantValidationResult(TokenRequestErrors error, string errorDescription = null, Dictionary<string, object> customResponse = null)
         {
             Error = ConvertTokenErrorEnumToString(error);
@@ -56,14 +71,15 @@ namespace IdentityServer4.Validation
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="GrantValidationResult"/> class.
+        /// Initializes a new instance of the <see cref="GrantValidationResult" /> class.
         /// </summary>
         /// <param name="subject">The subject claim used to uniquely identifier the user.</param>
         /// <param name="authenticationMethod">The authentication method which describes the custom grant type.</param>
         /// <param name="claims">Additional claims that will be maintained in the principal.</param>
         /// <param name="identityProvider">The identity provider.</param>
+        /// <param name="customResponse">The custom response.</param>
         public GrantValidationResult(
-            string subject, 
+            string subject,
             string authenticationMethod,
             IEnumerable<Claim> claims = null,
             string identityProvider = IdentityServerConstants.LocalIdentityProvider,
@@ -76,7 +92,7 @@ namespace IdentityServer4.Validation
                 new Claim(JwtClaimTypes.Subject, subject),
                 new Claim(JwtClaimTypes.AuthenticationMethod, authenticationMethod),
                 new Claim(JwtClaimTypes.IdentityProvider, identityProvider),
-                new Claim(JwtClaimTypes.AuthenticationTime, DateTimeHelper.UtcNow.ToEpochTime().ToString(), ClaimValueTypes.Integer)
+                new Claim(JwtClaimTypes.AuthenticationTime, IdentityServerDateTime.UtcNow.ToEpochTime().ToString(), ClaimValueTypes.Integer)
             };
 
             if (!claims.IsNullOrEmpty())

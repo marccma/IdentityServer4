@@ -10,10 +10,14 @@ using IdentityServer4.Configuration;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
-using System;
 
 namespace IdentityServer4.Stores
 {
+    /// <summary>
+    /// Caching decorator for IResourceStore
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <seealso cref="IdentityServer4.Stores.IResourceStore" />
     public class CachingResourceStore<T> : IResourceStore
         where T : IResourceStore
     {
@@ -25,8 +29,18 @@ namespace IdentityServer4.Stores
         private readonly ICache<ApiResource> _apiCache;
         private readonly ICache<Resources> _allCache;
         private readonly IResourceStore _inner;
-        private readonly ILogger<CachingResourceStore<T>> _logger;
+        private readonly ILogger _logger;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CachingResourceStore{T}"/> class.
+        /// </summary>
+        /// <param name="options">The options.</param>
+        /// <param name="inner">The inner.</param>
+        /// <param name="identityCache">The identity cache.</param>
+        /// <param name="apiByScopeCache">The API by scope cache.</param>
+        /// <param name="apiCache">The API cache.</param>
+        /// <param name="allCache">All cache.</param>
+        /// <param name="logger">The logger.</param>
         public CachingResourceStore(IdentityServerOptions options, T inner, 
             ICache<IEnumerable<IdentityResource>> identityCache, 
             ICache<IEnumerable<ApiResource>> apiByScopeCache,
@@ -49,46 +63,65 @@ namespace IdentityServer4.Stores
             return names.OrderBy(x => x).Aggregate((x, y) => x + "," + y);
         }
 
+        /// <summary>
+        /// Gets all resources.
+        /// </summary>
+        /// <returns></returns>
         public async Task<Resources> GetAllResources()
         {
             var key = AllKey;
 
             var all = await _allCache.GetAsync(key,
-                _options.CachingOptions.ScopeStoreExpiration,
+                _options.Caching.ResourceStoreExpiration,
                 () => _inner.GetAllResources(),
                 _logger);
 
             return all;
         }
 
+        /// <summary>
+        /// Finds the API resource by name.
+        /// </summary>
+        /// <param name="name">The name.</param>
+        /// <returns></returns>
         public async Task<ApiResource> FindApiResourceAsync(string name)
         {
             var api = await _apiCache.GetAsync(name,
-                _options.CachingOptions.ScopeStoreExpiration,
+                _options.Caching.ResourceStoreExpiration,
                 () => _inner.FindApiResourceAsync(name),
                 _logger);
 
             return api;
         }
 
+        /// <summary>
+        /// Finds the identity resources by scope.
+        /// </summary>
+        /// <param name="names">The names.</param>
+        /// <returns></returns>
         public async Task<IEnumerable<IdentityResource>> FindIdentityResourcesByScopeAsync(IEnumerable<string> names)
         {
             var key = GetKey(names);
 
             var identities = await _identityCache.GetAsync(key,
-                _options.CachingOptions.ScopeStoreExpiration,
+                _options.Caching.ResourceStoreExpiration,
                 () => _inner.FindIdentityResourcesByScopeAsync(names),
                 _logger);
 
             return identities;
         }
 
+        /// <summary>
+        /// Finds the API resources by scope.
+        /// </summary>
+        /// <param name="names">The names.</param>
+        /// <returns></returns>
         public async Task<IEnumerable<ApiResource>> FindApiResourcesByScopeAsync(IEnumerable<string> names)
         {
             var key = GetKey(names);
 
             var apis = await _apiByScopeCache.GetAsync(key,
-                _options.CachingOptions.ScopeStoreExpiration,
+                _options.Caching.ResourceStoreExpiration,
                 () => _inner.FindApiResourcesByScopeAsync(names),
                 _logger);
 

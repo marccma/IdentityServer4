@@ -6,7 +6,7 @@ using FluentAssertions;
 using IdentityModel.Client;
 using IdentityServer4.IntegrationTests.Common;
 using IdentityServer4.Models;
-using IdentityServer4.Services.InMemory;
+using IdentityServer4.Test;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
@@ -52,7 +52,7 @@ namespace IdentityServer4.IntegrationTests.Endpoints.Revocation
                 AllowedScopes = new List<string> { "api" },
                 RedirectUris = new List<string> { redirect_uri },
                 AllowAccessTokensViaBrowser = true,
-                AccessTokenType = AccessTokenType.Reference,
+                AccessTokenType = AccessTokenType.Reference
             });
             _mockPipeline.Clients.Add(new Client
             {
@@ -62,23 +62,23 @@ namespace IdentityServer4.IntegrationTests.Endpoints.Revocation
                 AllowedScopes = new List<string> { "api" },
                 RedirectUris = new List<string> { redirect_uri },
                 AllowAccessTokensViaBrowser = true,
-                AccessTokenType = AccessTokenType.Reference,
+                AccessTokenType = AccessTokenType.Reference
             });
 
-            _mockPipeline.Users.Add(new InMemoryUser
+            _mockPipeline.Users.Add(new TestUser
             {
-                Subject = "bob",
+                SubjectId = "bob",
                 Username = "bob",
                 Claims = new Claim[]
                 {
                     new Claim("name", "Bob Loblaw"),
                     new Claim("email", "bob@loblaw.com"),
-                    new Claim("role", "Attorney"),
+                    new Claim("role", "Attorney")
                 }
             });
 
             _mockPipeline.IdentityScopes.AddRange(new IdentityResource[] {
-                new IdentityResources.OpenId(),
+                new IdentityResources.OpenId()
             });
 
             _mockPipeline.ApiScopes.AddRange(new ApiResource[] {
@@ -90,7 +90,7 @@ namespace IdentityServer4.IntegrationTests.Endpoints.Revocation
                     {
                         new Scope
                         {
-                            Name = scope_name,
+                            Name = scope_name
                         }
                     }
                 }
@@ -291,7 +291,7 @@ namespace IdentityServer4.IntegrationTests.Endpoints.Revocation
             var data = new Dictionary<string, string>
             {
                 { "client_id", client_id },
-                { "client_secret", client_secret },
+                { "client_secret", client_secret }
             };
 
             var response = await _mockPipeline.Client.PostAsync(MockIdSvrUiPipeline.RevocationEndpoint, new FormUrlEncodedContent(data));
@@ -314,7 +314,7 @@ namespace IdentityServer4.IntegrationTests.Endpoints.Revocation
                 { "client_id", client_id },
                 { "client_secret", client_secret },
                 { "token", tokens.AccessToken },
-                { "token_type_hint", "not_valid" },
+                { "token_type_hint", "not_valid" }
             };
 
             var response = await _mockPipeline.Client.PostAsync(MockIdSvrUiPipeline.RevocationEndpoint, new FormUrlEncodedContent(data));
@@ -336,7 +336,7 @@ namespace IdentityServer4.IntegrationTests.Endpoints.Revocation
             {
                 { "client_id", client_id },
                 { "client_secret", client_secret },
-                { "token", tokens.AccessToken },
+                { "token", tokens.AccessToken }
             };
 
             var response = await _mockPipeline.Client.PostAsync(MockIdSvrUiPipeline.RevocationEndpoint, new FormUrlEncodedContent(data));
@@ -356,7 +356,7 @@ namespace IdentityServer4.IntegrationTests.Endpoints.Revocation
             {
                 { "client_id", client_id },
                 { "client_secret", client_secret },
-                { "token", tokens.RefreshToken },
+                { "token", tokens.RefreshToken }
             };
 
             var response = await _mockPipeline.Client.PostAsync(MockIdSvrUiPipeline.RevocationEndpoint, new FormUrlEncodedContent(data));
@@ -374,7 +374,7 @@ namespace IdentityServer4.IntegrationTests.Endpoints.Revocation
             var data = new Dictionary<string, string>
             {
                 { "client_id", "implicit" },
-                { "token", token },
+                { "token", token }
             };
 
             (await IsAccessTokenValidAsync(token)).Should().BeTrue();
@@ -393,7 +393,7 @@ namespace IdentityServer4.IntegrationTests.Endpoints.Revocation
             var data = new Dictionary<string, string>
             {
                 { "client_id", "implicit_and_client_creds" },
-                { "token", token },
+                { "token", token }
             };
 
             (await IsAccessTokenValidAsync(token)).Should().BeTrue();

@@ -2,13 +2,11 @@
 // Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
 
 
-using System.ComponentModel;
 
 #pragma warning disable 1591
 
 namespace IdentityServer4.Validation
 {
-    [EditorBrowsable(EditorBrowsableState.Never)]
     public enum BearerTokenUsageType
     {
         AuthorizationHeader = 0,

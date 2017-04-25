@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using IdentityServer4.Models;
 using System.Security.Claims;
 using IdentityServer4.IntegrationTests.Common;
-using IdentityServer4.Services.InMemory;
+using IdentityServer4.Test;
 
 namespace IdentityServer4.IntegrationTests.Endpoints.Authorize
 {
@@ -42,22 +42,22 @@ namespace IdentityServer4.IntegrationTests.Endpoints.Authorize
                 }
             });
 
-            _mockPipeline.Users.Add(new InMemoryUser
+            _mockPipeline.Users.Add(new TestUser
             {
-                Subject = "bob",
+                SubjectId = "bob",
                 Username = "bob",
                 Claims = new Claim[]
                 {
                     new Claim("name", "Bob Loblaw"),
                     new Claim("email", "bob@loblaw.com"),
-                    new Claim("role", "Attorney"),
+                    new Claim("role", "Attorney")
                 }
             });
 
             _mockPipeline.IdentityScopes.AddRange(new IdentityResource[] {
                 new IdentityResources.OpenId(),
                 new IdentityResources.Profile(),
-                new IdentityResources.Email(),
+                new IdentityResources.Email()
             });
             _mockPipeline.ApiScopes.AddRange(new ApiResource[] {
                 new ApiResource
@@ -67,11 +67,11 @@ namespace IdentityServer4.IntegrationTests.Endpoints.Authorize
                     {
                         new Scope
                         {
-                            Name = "api1",
+                            Name = "api1"
                         },
                         new Scope
                         {
-                            Name = "api2",
+                            Name = "api2"
                         }
                     }
                 }

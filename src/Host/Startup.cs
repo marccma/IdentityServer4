@@ -7,111 +7,101 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
-using Serilog.Events;
 using Microsoft.IdentityModel.Tokens;
-using System.Linq;
 using IdentityServer4;
 using IdentityServer4.Validation;
 using Serilog;
 using Microsoft.AspNetCore.Http;
+using IdentityServer4.Quickstart.UI;
+using Microsoft.AspNetCore.Hosting;
 
 namespace Host
 {
     public class Startup
     {
-        public void ConfigureServices(IServiceCollection services)
+        public Startup(ILoggerFactory loggerFactory, IHostingEnvironment environment)
         {
-            services.Configure<IISOptions>(options=>
+            var serilog = new LoggerConfiguration()
+                .MinimumLevel.Verbose()
+                .Enrich.FromLogContext()
+                .WriteTo.File(@"identityserver4_log.txt");
+                
+            if (environment.IsDevelopment())
             {
-                const string windowsAuthType = "Negotiate";
-                var windows = options.AuthenticationDescriptions
-                    .FirstOrDefault(x => x.AuthenticationScheme == windowsAuthType);
-                if (windows != null)
-                {
-                    windows.DisplayName = "Windows";
-                }
-            });
+                serilog.WriteTo.LiterateConsole(outputTemplate: "[{Timestamp:HH:mm:ss} {Level}] {SourceContext}{NewLine}{Message}{NewLine}{Exception}{NewLine}");
+            }
 
+            loggerFactory
+                .WithFilter(new FilterLoggerSettings
+                {
+                    { "IdentityServer4", LogLevel.Debug },
+                    { "Microsoft", LogLevel.Information },
+                    { "System", LogLevel.Error }
+                })
+                .AddSerilog(serilog.CreateLogger());
+        }
+
+        public IServiceProvider ConfigureServices(IServiceCollection services)
+        {
             services.AddIdentityServer(options =>
                 {
-                    //options.EventsOptions = new EventsOptions
-                    //{
-                    //    RaiseErrorEvents = true,
-                    //    RaiseFailureEvents = true,
-                    //    RaiseInformationEvents = true,
-                    //    RaiseSuccessEvents = true
-                    //};
+                    options.Authentication.FederatedSignOutPaths.Add("/signout-callback-aad");
+                    options.Authentication.FederatedSignOutPaths.Add("/signout-callback-idsrv");
+                    options.Authentication.FederatedSignOutPaths.Add("/signout-callback-adfs");
 
-                    options.AuthenticationOptions.FederatedSignOutPaths.Add("/signout-oidc");
+                    options.Events.RaiseSuccessEvents = true;
+                    options.Events.RaiseFailureEvents = true;
+                    options.Events.RaiseErrorEvents = true;
                 })
                 .AddInMemoryClients(Clients.Get())
                 .AddInMemoryIdentityResources(Resources.GetIdentityResources())
                 .AddInMemoryApiResources(Resources.GetApiResources())
-                .AddInMemoryUsers(Users.Get())
-                .AddTemporarySigningCredential()
+                .AddDeveloperSigningCredential()
                 .AddExtensionGrantValidator<Extensions.ExtensionGrantValidator>()
+                .AddExtensionGrantValidator<Extensions.NoSubjectExtensionGrantValidator>()
                 .AddSecretParser<ClientAssertionSecretParser>()
-                .AddSecretValidator<PrivateKeyJwtSecretValidator>();
+                .AddSecretValidator<PrivateKeyJwtSecretValidator>()
+                .AddTestUsers(TestUsers.Users);
+
+            // AppAuth enabled redirect URI validator
+            services.AddTransient<IRedirectUriValidator, StrictRedirectUriValidatorAppAuth>();
 
             services.AddMvc();
+
+            // only use for development until this bug is fixed
+            // https://github.com/aspnet/DependencyInjection/pull/470
+            return services.BuildServiceProvider(validateScopes: true);
         }
 
-        public void Configure(IApplicationBuilder app, ILoggerFactory loggerFactory)
+        public void Configure(IApplicationBuilder app)
         {
-            // serilog filter
-            Func<LogEvent, bool> serilogFilter = (e) =>
-            {
-                var context = e.Properties["SourceContext"].ToString();
-
-                return (context.StartsWith("\"IdentityServer") ||
-                        context.StartsWith("\"IdentityModel") ||
-                        e.Level == LogEventLevel.Error ||
-                        e.Level == LogEventLevel.Fatal);
-            };
-        
-            var serilog = new LoggerConfiguration()
-                .MinimumLevel.Verbose()
-                .Enrich.FromLogContext()
-                .Filter.ByIncludingOnly(serilogFilter)
-                .WriteTo.LiterateConsole(outputTemplate: "[{Timestamp:HH:mm:ss} {Level}] {SourceContext}{NewLine}{Message}{NewLine}{Exception}{NewLine}")
-                .WriteTo.File(@"identityserver4_log.txt")
-                .CreateLogger();
-
-            loggerFactory.AddSerilog(serilog);
-
             app.UseDeveloperExceptionPage();
 
             app.UseIdentityServer();
-
-            app.UseCookieAuthentication(new CookieAuthenticationOptions
-            {
-                AuthenticationScheme = IdentityServerConstants.ExternalCookieAuthenticationScheme,
-                AutomaticAuthenticate = false,
-                AutomaticChallenge = false
-            });
 
             app.UseGoogleAuthentication(new GoogleOptions
             {
                 AuthenticationScheme = "Google",
                 SignInScheme = IdentityServerConstants.ExternalCookieAuthenticationScheme,
-                ClientId = "998042782978-s07498t8i8jas7npj4crve1skpromf37.apps.googleusercontent.com",
-                ClientSecret = "HsnwJri_53zn7VcO1Fm7THBb",
+                ClientId = "708996912208-9m4dkjb5hscn7cjrn5u0r4tbgkbj1fko.apps.googleusercontent.com",
+                ClientSecret = "wdfPY6t8H8cecgjlxud__4Gh"
             });
 
             app.UseOpenIdConnectAuthentication(new OpenIdConnectOptions
             {
-                AuthenticationScheme = "idsrv3",
+                AuthenticationScheme = "demoidsrv",
                 SignInScheme = IdentityServerConstants.ExternalCookieAuthenticationScheme,
                 SignOutScheme = IdentityServerConstants.SignoutScheme,
-                DisplayName = "IdentityServer3",
+                AutomaticChallenge = false,
+                DisplayName = "IdentityServer",
                 Authority = "https://demo.identityserver.io/",
                 ClientId = "implicit",
                 ResponseType = "id_token",
                 Scope = { "openid profile" },
-                CallbackPath = new PathString("/signin-idsrv3"),
-                // uncomment this if you upgrade to 1.1
-                //SignedOutCallbackPath = new PathString("/signin-callback-idsrv3"),
-                RemoteSignOutPath = new PathString("/signout-idsrv3"),
+                SaveTokens = true,
+                CallbackPath = new PathString("/signin-idsrv"),
+                SignedOutCallbackPath = new PathString("/signout-callback-idsrv"),
+                RemoteSignOutPath = new PathString("/signout-idsrv"),
                 TokenValidationParameters = new TokenValidationParameters
                 {
                     NameClaimType = "name",
@@ -124,15 +114,36 @@ namespace Host
                 AuthenticationScheme = "aad",
                 SignInScheme = IdentityServerConstants.ExternalCookieAuthenticationScheme,
                 SignOutScheme = IdentityServerConstants.SignoutScheme,
+                AutomaticChallenge = false,
                 DisplayName = "AAD",
                 Authority = "https://login.windows.net/4ca9cb4c-5e5f-4be9-b700-c532992a3705",
                 ClientId = "96e3c53e-01cb-4244-b658-a42164cb67a9",
                 ResponseType = "id_token",
                 Scope = { "openid profile" },
                 CallbackPath = new PathString("/signin-aad"),
-                // uncomment this if you upgrade to 1.1
-                //SignedOutCallbackPath = new PathString("/signout-callback-aad"),
+                SignedOutCallbackPath = new PathString("/signout-callback-aad"),
                 RemoteSignOutPath = new PathString("/signout-aad"),
+                TokenValidationParameters = new TokenValidationParameters
+                {
+                    NameClaimType = "name",
+                    RoleClaimType = "role"
+                }
+            });
+
+            app.UseOpenIdConnectAuthentication(new OpenIdConnectOptions
+            {
+                AuthenticationScheme = "adfs",
+                SignInScheme = IdentityServerConstants.ExternalCookieAuthenticationScheme,
+                SignOutScheme = IdentityServerConstants.SignoutScheme,
+                AutomaticChallenge = false,
+                DisplayName = "ADFS",
+                Authority = "https://adfs.leastprivilege.vm/adfs",
+                ClientId = "c0ea8d99-f1e7-43b0-a100-7dee3f2e5c3c",
+                ResponseType = "id_token",
+                Scope = { "openid profile" },
+                CallbackPath = new PathString("/signin-adfs"),
+                SignedOutCallbackPath = new PathString("/signout-callback-adfs"),
+                RemoteSignOutPath = new PathString("/signout-adfs"),
                 TokenValidationParameters = new TokenValidationParameters
                 {
                     NameClaimType = "name",

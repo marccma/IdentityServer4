@@ -6,6 +6,9 @@ using System;
 
 namespace IdentityServer4.Models
 {
+    /// <summary>
+    /// A model for a persisted grant
+    /// </summary>
     public class PersistedGrant
     {
         /// <summary>
@@ -54,7 +57,7 @@ namespace IdentityServer4.Models
         /// <value>
         /// The expiration.
         /// </value>
-        public DateTime Expiration { get; set; }
+        public DateTime? Expiration { get; set; }
 
         /// <summary>
         /// Gets or sets the data.

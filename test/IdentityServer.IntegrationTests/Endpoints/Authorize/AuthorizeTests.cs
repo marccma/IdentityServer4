@@ -10,7 +10,8 @@ using System.Collections.Generic;
 using IdentityServer4.Models;
 using System.Security.Claims;
 using IdentityServer4.IntegrationTests.Common;
-using IdentityServer4.Services.InMemory;
+using IdentityServer4.Test;
+using System.Net.Http;
 
 namespace IdentityServer4.IntegrationTests.Endpoints.Authorize
 {
@@ -53,22 +54,22 @@ namespace IdentityServer4.IntegrationTests.Endpoints.Authorize
                 }
             });
 
-            _mockPipeline.Users.Add(new InMemoryUser
+            _mockPipeline.Users.Add(new TestUser
             {
-                Subject = "bob",
+                SubjectId = "bob",
                 Username = "bob",
                 Claims = new Claim[]
                 {
                     new Claim("name", "Bob Loblaw"),
                     new Claim("email", "bob@loblaw.com"),
-                    new Claim("role", "Attorney"),
+                    new Claim("role", "Attorney")
                 }
             });
 
             _mockPipeline.IdentityScopes.AddRange(new IdentityResource[] {
                 new IdentityResources.OpenId(),
                 new IdentityResources.Profile(),
-                new IdentityResources.Email(),
+                new IdentityResources.Email()
             });
             _mockPipeline.ApiScopes.AddRange(new ApiResource[] {
                 new ApiResource
@@ -78,11 +79,11 @@ namespace IdentityServer4.IntegrationTests.Endpoints.Authorize
                     {
                         new Scope
                         {
-                            Name = "api1",
+                            Name = "api1"
                         },
                         new Scope
                         {
-                            Name = "api2",
+                            Name = "api2"
                         }
                     }
                 }
@@ -98,6 +99,26 @@ namespace IdentityServer4.IntegrationTests.Endpoints.Authorize
             var response = await _mockPipeline.BrowserClient.GetAsync(MockIdSvrUiPipeline.AuthorizeEndpoint);
 
             response.StatusCode.Should().NotBe(HttpStatusCode.NotFound);
+        }
+
+        [Fact]
+        [Trait("Category", Category)]
+        public async Task post_request_without_form_should_return_415()
+        {
+            var response = await _mockPipeline.BrowserClient.PostAsync(MockIdSvrUiPipeline.AuthorizeEndpoint, new StringContent("foo"));
+
+            response.StatusCode.Should().Be(HttpStatusCode.UnsupportedMediaType);
+        }
+
+        [Fact]
+        [Trait("Category", Category)]
+        public async Task post_request_should_return_200()
+        {
+            var response = await _mockPipeline.BrowserClient.PostAsync(MockIdSvrUiPipeline.AuthorizeEndpoint,
+                new FormUrlEncodedContent(
+                    new Dictionary<string, string>{ }));
+
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
         }
 
         [Fact]

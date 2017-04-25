@@ -13,7 +13,7 @@ If you start with ASP.NET Identity, we provide an easy way to integrate with tha
 
 The quickstarts provide step by step instructions for various common identityserver scenarios.
 They start with the absolute basics and become more complex - 
-it is recommended you do them in in order.
+it is recommended you do them in order.
 
 Every quickstart has a reference solution - you can find the code in the 
 `IdentityServer4.Samples <https://github.com/IdentityServer/IdentityServer4.Samples>`_
@@ -33,15 +33,16 @@ Then select the "Empty Web" option.
 
 .. image:: images/0_empty_web.png
 
-Next, add the IdentityServer4 nuget package by adding the following line to your project.json under the ´dependencies´ property::
+.. note:: IdentityServer currently only targets ASP.NET Core 1.1.
 
-    "IdentityServer4": "1.0.0-rc4-update1"
+Next, add the `IdentityServer4` nuget package:
+
+.. image:: images/0_nuget.png
     
 Alternatively you can use Package Manager Console to add the dependency by running the following command:
 
-    "Install-Package IdentityServer4 -Pre"
- 
-    
+    "Install-Package IdentityServer4"
+
 IdentityServer uses the usual pattern to configure and add services to an ASP.NET Core host.
 In ``ConfigureServices`` the required services are configured and added to the DI system. 
 In ``Configure`` the middleware is added to the HTTP pipeline.
@@ -79,7 +80,7 @@ Modify hosting
 ^^^^^^^^^^^^^^^
 
 By default Visual Studio uses IIS Express to host your web project. This is totally fine,
-besides that you won't be able to see the real time log output to the console.
+beside that you won't be able to see the real time log output to the console.
 
 IdentityServer makes extensive use of logging whereas the "visible" error message in the UI
 or returned to clients are deliberately vague.
@@ -91,7 +92,7 @@ You also don't need to launch a browser every time you start IdentityServer - yo
 .. image:: images/0_launch_profile.png
 
 When you switch to self-hosting, the web server port defaults to 5000. 
-You can configure this in ``Program.cs`` - 
+You can configure this either in the launch profile dialog above, or programmatically in ``Program.cs`` - 
 we use the following configuration for the IdentityServer host in the quickstarts::
 
     public class Program
@@ -113,3 +114,17 @@ we use the following configuration for the IdentityServer host in the quickstart
     }
 
 .. Note:: We recommend to configure the same port for IIS Express and self-hosting. This way you can switch between the two without having to modify any configuration in your clients.
+
+How to run the quickstart
+^^^^^^^^^^^^^^^^^^^^^^^^^
+As mentioned above every quickstart has a reference solution - you can find the code in the 
+`IdentityServer4.Samples <https://github.com/IdentityServer/IdentityServer4.Samples>`_
+repo in the quickstarts folder.
+
+The easiest way to run the individual parts of a quickstart solution is to set the startup mode to "current selection".
+Right click the solution and select "Set Startup Projects":
+
+.. image:: images/0_startup_mode.png
+
+Typically you start IdentityServer first, then the API, and then the client. Only run in the debugger if you actually want to debug.
+Otherwise Ctrl+F5 is the best way to run the projects.

@@ -5,7 +5,7 @@
 using FluentAssertions;
 using IdentityServer4.IntegrationTests.Common;
 using IdentityServer4.Models;
-using IdentityServer4.Services.InMemory;
+using IdentityServer4.Test;
 using Microsoft.AspNetCore.WebUtilities;
 using System.Collections.Generic;
 using System.Linq;
@@ -48,20 +48,20 @@ namespace IdentityServer4.IntegrationTests.Endpoints.EndSession
                 LogoutUri = "https://client2/signout",
                 PostLogoutRedirectUris = new List<string> {
                     "https://client2/signout-callback",
-                    "https://client2/signout-callback2",
+                    "https://client2/signout-callback2"
                 },
                 AllowAccessTokensViaBrowser = true
             });
 
-            _mockPipeline.Users.Add(new InMemoryUser
+            _mockPipeline.Users.Add(new TestUser
             {
-                Subject = "bob",
+                SubjectId = "bob",
                 Username = "bob",
                 Claims = new Claim[]
                 {
                     new Claim("name", "Bob Loblaw"),
                     new Claim("email", "bob@loblaw.com"),
-                    new Claim("role", "Attorney"),
+                    new Claim("role", "Attorney")
                 }
             });
 
@@ -94,8 +94,8 @@ namespace IdentityServer4.IntegrationTests.Endpoints.EndSession
         [Trait("Category", Category)]
         public async Task get_request_should_redirect_to_configured_logout_path()
         {
-            _mockPipeline.Options.UserInteractionOptions.LogoutUrl = "/logout";
-            _mockPipeline.Options.UserInteractionOptions.LogoutIdParameter = "id";
+            _mockPipeline.Options.UserInteraction.LogoutUrl = "/logout";
+            _mockPipeline.Options.UserInteraction.LogoutIdParameter = "id";
 
             await _mockPipeline.LoginAsync(IdentityServerPrincipal.Create("bob", "Bob Loblaw"));
 

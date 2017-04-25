@@ -7,7 +7,7 @@ using IdentityModel;
 using IdentityServer4.Configuration;
 using IdentityServer4.Models;
 using IdentityServer4.ResponseHandling;
-using IdentityServer4.Stores.InMemory;
+using IdentityServer4.Stores;
 using IdentityServer4.UnitTests.Common;
 using IdentityServer4.Validation;
 using Microsoft.Extensions.Logging;
@@ -52,7 +52,7 @@ namespace IdentityServer4.UnitTests.ResponseHandling
             {
                 new IdentityResources.OpenId(),
                 new IdentityResources.Profile(),
-                new IdentityResources.Email(),
+                new IdentityResources.Email()
             };
         }
 
@@ -69,13 +69,13 @@ namespace IdentityServer4.UnitTests.ResponseHandling
                         {
                             Name = "read",
                             DisplayName = "Read data",
-                            Emphasize = false,
+                            Emphasize = false
                         },
                         new Scope
                         {
                             Name = "write",
                             DisplayName = "Write data",
-                            Emphasize = true,
+                            Emphasize = true
                         },
                         new Scope
                         {
@@ -92,7 +92,6 @@ namespace IdentityServer4.UnitTests.ResponseHandling
         {
             _subject = new AuthorizeInteractionResponseGenerator(
                 TestLogger.Create<AuthorizeInteractionResponseGenerator>(),
-                _options,
                 _mockConsent,
                 _fakeUserService);
         }
@@ -239,7 +238,7 @@ namespace IdentityServer4.UnitTests.ResponseHandling
             {
                 ResponseMode = OidcConstants.ResponseModes.Fragment,
                 State = "12345",
-                RedirectUri = "https://client.com/callback",
+                RedirectUri = "https://client.com/callback"
             };
             var consent = new ConsentResponse
             {

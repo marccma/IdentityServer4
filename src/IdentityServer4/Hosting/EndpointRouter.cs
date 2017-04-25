@@ -17,7 +17,7 @@ namespace IdentityServer4.Hosting
         private readonly Dictionary<string, EndpointName> _pathToNameMap;
         private readonly IdentityServerOptions _options;
         private readonly IEnumerable<EndpointMapping> _mappings;
-        private readonly ILogger<EndpointRouter> _logger;
+        private readonly ILogger _logger;
 
         public EndpointRouter(Dictionary<string, EndpointName> pathToNameMap, IdentityServerOptions options, IEnumerable<EndpointMapping> mappings, ILogger<EndpointRouter> logger)
         {
@@ -65,7 +65,7 @@ namespace IdentityServer4.Hosting
             }
             else
             {
-                _logger.LogWarning("{endpoint} endpoint requested, but is diabled in endpoint options.", endpointName);
+                _logger.LogWarning("{endpoint} endpoint requested, but is disabled in endpoint options.", endpointName);
             }
 
             return null;

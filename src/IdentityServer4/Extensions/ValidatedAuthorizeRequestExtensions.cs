@@ -10,6 +10,8 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 
+#pragma warning disable 1591
+
 namespace IdentityServer4.Validation
 {
     public static class ValidatedAuthorizeRequestExtensions
@@ -94,7 +96,7 @@ namespace IdentityServer4.Validation
 
             var clientId = request.ClientId;
             var sessionId = request.SessionId;
-            var salt = CryptoRandom.CreateUniqueId();
+            var salt = CryptoRandom.CreateUniqueId(16);
 
             var uri = new Uri(request.RedirectUri);
             var origin = uri.Scheme + "://" + uri.Host;

@@ -4,6 +4,7 @@
 
 using IdentityServer4.Configuration;
 using IdentityServer4.Extensions;
+using IdentityServer4.Infrastructure;
 using IdentityServer4.Models;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
@@ -21,10 +22,15 @@ namespace IdentityServer4
         static readonly JsonSerializerSettings Settings = new JsonSerializerSettings
         {
             NullValueHandling = NullValueHandling.Ignore,
-            DefaultValueHandling = DefaultValueHandling.Ignore,
+            DefaultValueHandling = DefaultValueHandling.Ignore
         };
 
-        private readonly ILogger<MessageCookie<TModel>> _logger;
+        static MessageCookie()
+        {
+            Settings.Converters.Add(new NameValueCollectionConverter());
+        }
+
+        private readonly ILogger _logger;
         private readonly IdentityServerOptions _options;
         private readonly IHttpContextAccessor _context;
         private readonly IDataProtector _protector;
@@ -54,7 +60,7 @@ namespace IdentityServer4
         Message<TModel> Unprotect(string data)
         {
             var json = _protector.Unprotect(data);
-            var message = JsonConvert.DeserializeObject<Message<TModel>>(json);
+            var message = JsonConvert.DeserializeObject<Message<TModel>>(json, Settings);
             return message;
         }
 
@@ -65,7 +71,7 @@ namespace IdentityServer4
             return CookiePrefix + id;
         }
 
-        string CookiePath => _context.HttpContext.GetBasePath().CleanUrlPath();
+        string CookiePath => _context.HttpContext.GetIdentityServerBasePath().CleanUrlPath();
 
         private IEnumerable<string> GetCookieNames()
         {
@@ -140,7 +146,7 @@ namespace IdentityServer4
                 ".",
                 new CookieOptions
                 {
-                    Expires = DateTimeHelper.UtcNow.AddYears(-1),
+                    Expires = IdentityServerDateTime.UtcNow.AddYears(-1),
                     HttpOnly = true,
                     Secure = Secure,
                     Path = CookiePath
@@ -173,7 +179,7 @@ namespace IdentityServer4
         private void ClearOverflow()
         {
             var names = GetCookieNames();
-            var toKeep = _options.UserInteractionOptions.CookieMessageThreshold;
+            var toKeep = _options.UserInteraction.CookieMessageThreshold;
 
             if (names.Count() >= toKeep)
             {

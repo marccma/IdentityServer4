@@ -36,6 +36,22 @@ namespace IdentityServer4.IntegrationTests.Clients
                 },
                 new Client
                 {
+                    ClientId = "client.and.ro",
+                    ClientSecrets =
+                    {
+                        new Secret("secret".Sha256())
+                    },
+
+                    AllowedGrantTypes = GrantTypes.ResourceOwnerPasswordAndClientCredentials,
+
+                    AllowedScopes =
+                    {
+                        "openid",
+                        "api1", "api2"
+                    }
+                },
+                new Client
+                {
                     ClientId = "client.identityscopes",
                     ClientSecrets =
                     {
@@ -58,7 +74,7 @@ namespace IdentityServer4.IntegrationTests.Clients
                         new Secret("secret".Sha256())
                     },
 
-                    AllowedGrantTypes = GrantTypes.ClientCredentials,
+                    AllowedGrantTypes = GrantTypes.ClientCredentials
                 },
 
                 ///////////////////////////////////////////
@@ -96,12 +112,29 @@ namespace IdentityServer4.IntegrationTests.Clients
                         new Secret("secret".Sha256())
                     },
 
-                    AllowedGrantTypes = GrantTypes.List("custom"),
+                    AllowedGrantTypes = { "custom", "custom.nosubject" },
 
                     AllowedScopes = 
                     {
                         "api1", "api2"
                     }
+                },
+                new Client
+                {
+                    ClientId = "client.dynamic",
+                    ClientSecrets =
+                    {
+                        new Secret("secret".Sha256())
+                    },
+
+                    AllowedGrantTypes = { "dynamic" },
+
+                    AllowedScopes =
+                    {
+                        "api1", "api2"
+                    },
+
+                    AlwaysSendClientClaims = true
                 },
 
                 ///////////////////////////////////////////
@@ -146,7 +179,7 @@ namespace IdentityServer4.IntegrationTests.Clients
                     AllowedScopes = new List<string>
                     {
                         "api1", "api2"
-                    },
+                    }
                 },
 
                 new Client
@@ -160,7 +193,7 @@ namespace IdentityServer4.IntegrationTests.Clients
                     ClientId = "implicit_and_client_creds",
                     AllowedGrantTypes = GrantTypes.ImplicitAndClientCredentials,
                     AllowedScopes = {"api1"}
-                },
+                }
             };
         }
     }

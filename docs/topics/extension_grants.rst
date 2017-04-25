@@ -78,14 +78,14 @@ It's the job of the extension grant validator to handle that request by validati
 
             if (string.IsNullOrEmpty(userToken))
             {
-                context.Result = new GrantValidationResult(TokenErrors.InvalidGrant);
+                context.Result = new GrantValidationResult(TokenRequestErrors.InvalidGrant);
                 return;
             }
 
             var result = await _validator.ValidateAccessTokenAsync(userToken);
             if (result.IsError)
             {
-                context.Result = new GrantValidationResult(TokenErrors.InvalidGrant);
+                context.Result = new GrantValidationResult(TokenRequestErrors.InvalidGrant);
                 return;
             }
 
@@ -111,7 +111,7 @@ You need a client registration in IdentityServer that allows a client to use thi
             new Secret("secret".Sha256())
         },
         
-        AllowedGrantTypes = GrantTypes.List("delegation"),
+        AllowedGrantTypes = { "delegation" },
 
         AllowedScopes = new List<string>
         {

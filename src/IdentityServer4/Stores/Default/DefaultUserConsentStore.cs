@@ -6,23 +6,28 @@ using System.Threading.Tasks;
 using IdentityServer4.Models;
 using IdentityServer4.Stores.Serialization;
 using Microsoft.Extensions.Logging;
-using IdentityServer4.Extensions;
-using System;
+using IdentityServer4.Services;
 
 namespace IdentityServer4.Stores
 {
     /// <summary>
     /// Default user consent store.
     /// </summary>
-    /// <seealso cref="IdentityServer4.Stores.DefaultGrantStore{IdentityServer4.Models.Consent}" />
-    /// <seealso cref="IdentityServer4.Stores.IUserConsentStore" />
     public class DefaultUserConsentStore : DefaultGrantStore<Consent>, IUserConsentStore
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DefaultUserConsentStore"/> class.
+        /// </summary>
+        /// <param name="store">The store.</param>
+        /// <param name="serializer">The serializer.</param>
+        /// <param name="handleGenerationService">The handle generation service.</param>
+        /// <param name="logger">The logger.</param>
         public DefaultUserConsentStore(
             IPersistedGrantStore store, 
-            PersistentGrantSerializer serializer, 
+            IPersistentGrantSerializer serializer,
+            IHandleGenerationService handleGenerationService,
             ILogger<DefaultUserConsentStore> logger) 
-            : base(Constants.PersistedGrantTypes.UserConsent, store, serializer, logger)
+            : base(Constants.PersistedGrantTypes.UserConsent, store, serializer, handleGenerationService, logger)
         {
         }
 
@@ -39,7 +44,7 @@ namespace IdentityServer4.Stores
         public Task StoreUserConsentAsync(Consent consent)
         {
             var key = GetConsentKey(consent.ClientId, consent.SubjectId);
-            return StoreItemAsync(key, consent, consent.ClientId, consent.SubjectId, DateTimeHelper.UtcNow, Int32.MaxValue);
+            return StoreItemAsync(key, consent, consent.ClientId, consent.SubjectId, consent.CreationTime, consent.Expiration);
         }
 
         /// <summary>

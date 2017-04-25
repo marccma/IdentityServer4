@@ -2,32 +2,42 @@
 // Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
 
 
-using IdentityModel;
 using IdentityServer4.Models;
 using Microsoft.Extensions.Logging;
 using System.Collections.Specialized;
-using System.Linq;
 using System.Threading.Tasks;
-using System;
 
 namespace IdentityServer4.Validation
 {
+    /// <summary>
+    /// The introspection request validator
+    /// </summary>
+    /// <seealso cref="IdentityServer4.Validation.IIntrospectionRequestValidator" />
     public class IntrospectionRequestValidator : IIntrospectionRequestValidator
     {
-        private readonly ILogger<IntrospectionRequestValidator> _logger;
+        private readonly ILogger _logger;
         private readonly ITokenValidator _tokenValidator;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="IntrospectionRequestValidator"/> class.
+        /// </summary>
+        /// <param name="tokenValidator">The token validator.</param>
+        /// <param name="logger">The logger.</param>
         public IntrospectionRequestValidator(ITokenValidator tokenValidator, ILogger<IntrospectionRequestValidator> logger)
         {
             _tokenValidator = tokenValidator;
             _logger = logger;
         }
 
-        public async Task<IntrospectionRequestValidationResult> ValidateAsync(NameValueCollection parameters, ApiResource apiResource)
+        /// <summary>
+        /// Validates the request.
+        /// </summary>
+        /// <param name="parameters">The parameters.</param>
+        /// <param name="api">The API.</param>
+        /// <returns></returns>
+        public async Task<IntrospectionRequestValidationResult> ValidateAsync(NameValueCollection parameters, ApiResource api)
         {
             _logger.LogDebug("Introspection request validation started.");
-
-            var fail = new IntrospectionRequestValidationResult { IsError = true };
 
             // retrieve required token
             var token = parameters.Get("token");
@@ -35,9 +45,12 @@ namespace IdentityServer4.Validation
             {
                 _logger.LogError("Token is missing");
 
-                fail.IsActive = false;
-                fail.FailureReason = IntrospectionRequestValidationFailureReason.MissingToken;
-                return fail;
+                return new IntrospectionRequestValidationResult
+                {
+                    IsError = true,
+                    Api = api,
+                    Error = "missing_token"
+                };
             }
 
             // validate token
@@ -48,42 +61,26 @@ namespace IdentityServer4.Validation
             {
                 _logger.LogDebug("Token is invalid.");
 
-                fail.IsActive = false;
-                fail.FailureReason = IntrospectionRequestValidationFailureReason.InvalidToken;
-                fail.Token = token;
-                return fail;
+                return new IntrospectionRequestValidationResult
+                {
+                    IsActive = false,
+                    IsError = false,
+                    Token = token,
+                    Api = api
+                };
             }
 
-            // check expected scopes
-            var supportedScopes = apiResource.Scopes.Select(x => x.Name);
-            var expectedScopes = tokenValidationResult.Claims.Where(
-                c => c.Type == JwtClaimTypes.Scope && supportedScopes.Contains(c.Value));
+            _logger.LogDebug("Introspection request validation successful.");
 
-            // expected scope not present
-            if (!expectedScopes.Any())
-            {
-                _logger.LogError("Expected scope {scopes} is missing in token", supportedScopes);
-
-                fail.IsActive = false;
-                fail.IsError = true;
-                fail.FailureReason = IntrospectionRequestValidationFailureReason.InvalidScope;
-                fail.Token = token;
-                return fail;
-            }
-
-            // TODO: filter out the scope claims this API is not allowed to see?
-
-            // all is good
-            var success = new IntrospectionRequestValidationResult
+            // valid token
+            return new IntrospectionRequestValidationResult
             {
                 IsActive = true,
                 IsError = false,
                 Token = token,
-                Claims = tokenValidationResult.Claims
+                Claims = tokenValidationResult.Claims,
+                Api = api
             };
-
-            _logger.LogDebug("Introspection request validation successful.");
-            return success;
         }
     }
 }

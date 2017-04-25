@@ -56,14 +56,14 @@ namespace IdentityServer4.Validation
 
             var isAuthenticated = subject.IsAuthenticated();
 
-            if (!isAuthenticated && _options.AuthenticationOptions.RequireAuthenticatedUserForSignOutMessage)
+            if (!isAuthenticated && _options.Authentication.RequireAuthenticatedUserForSignOutMessage)
             {
                 return Invalid("User is anonymous. Ignoring end session parameters");
             }
 
-            var validatedRequest = new ValidatedEndSessionRequest()
+            var validatedRequest = new ValidatedEndSessionRequest
             {
-                Raw = parameters,
+                Raw = parameters
             };
 
             var idTokenHint = parameters.Get(OidcConstants.EndSessionRequest.IdTokenHint);
@@ -118,7 +118,7 @@ namespace IdentityServer4.Validation
 
             LogSuccess(validatedRequest);
 
-            return new EndSessionValidationResult()
+            return new EndSessionValidationResult
             {
                 ValidatedRequest = validatedRequest,
                 IsError = false
@@ -154,12 +154,12 @@ namespace IdentityServer4.Validation
 
         public async Task<EndSessionCallbackValidationResult> ValidateCallbackAsync(NameValueCollection parameters)
         {
-            var result = new EndSessionCallbackValidationResult()
+            var result = new EndSessionCallbackValidationResult
             {
                 IsError = true
             };
 
-            result.LogoutId = parameters[_options.UserInteractionOptions.LogoutIdParameter];
+            result.LogoutId = parameters[_options.UserInteraction.LogoutIdParameter];
             result.SessionId = parameters[OidcConstants.EndSessionRequest.Sid];
 
             if (result.SessionId == null && result.LogoutId == null)
@@ -195,7 +195,7 @@ namespace IdentityServer4.Validation
                     if (client.LogoutSessionRequired)
                     {
                         url = url.AddQueryString(OidcConstants.EndSessionRequest.Sid, sid);
-                        url = url.AddQueryString(OidcConstants.EndSessionRequest.Issuer, _context.HttpContext.GetIssuerUri());
+                        url = url.AddQueryString(OidcConstants.EndSessionRequest.Issuer, _context.HttpContext.GetIdentityServerIssuerUri());
                     }
 
                     urls.Add(url);

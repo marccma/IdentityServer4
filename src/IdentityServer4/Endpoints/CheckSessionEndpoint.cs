@@ -13,7 +13,7 @@ namespace IdentityServer4.Endpoints
 {
     class CheckSessionEndpoint : IEndpoint
     {
-        private readonly ILogger<CheckSessionEndpoint> _logger;
+        private readonly ILogger _logger;
 
         public CheckSessionEndpoint(ILogger<CheckSessionEndpoint> logger)
         {
@@ -22,7 +22,7 @@ namespace IdentityServer4.Endpoints
 
         public Task<IEndpointResult> ProcessAsync(HttpContext context)
         {
-            IEndpointResult result = null;
+            IEndpointResult result;
 
             if (context.Request.Method != "GET")
             {
